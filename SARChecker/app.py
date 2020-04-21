@@ -60,6 +60,5 @@ def lambda_handler(event, context):
         "statusCode": 200,
         "body": json.dumps({
             "message": {"appsoutofpolicy": len(outofpolicy)},
-            # "location": ip.text.replace("\n", "")
         }),
     }
