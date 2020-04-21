@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SARChecker
+
+  Sample SAM Template for SARChecker
+
+Parameters:
+  PhoneNumber:
+    Type: String
+    Description: "Enter the phone number to use for the SNS topic subscription"
+    Default: "+phone"
+  Timeoutsetting:
+    Type: Number
+    Description: "Enter the timeout for the Lambda function to use"
+    Default: 900
+
+Resources:
+  SARChecker:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: SARChecker/
+      Handler: app.lambda_handler
+      Runtime: python3.6
+      Timeout: !Ref Timeoutsetting
+      Policies:
+        - SNSPublishMessagePolicy:
+            Resource: !Ref SARTopic
+            TopicName: SARApplications
+        - Statement:
+          - Sid: ServerlessAppRepoReadonly
+            Effect: Allow
+            Action:
+              - serverlessrepo:ListApplications
+              - serverlessrepo:GetApplication
+              - serverlessrepo:GetApplicationPolicy
+            Resource: '*'
+      Environment:
+        Variables:
+          messagetype: sns
+          topicarn: !Ref SARTopic
+          phone: !Ref PhoneNumber
+      Events:
+        Timer:
+          Type: Schedule
+          Properties:
+            Enabled: True
+            Name: SARCheckerTimer
+            Schedule: "cron(0 * * * ? *)"
+          
+  SARTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: SARChecker
+      TopicName: SARApplications
+      Subscription:
+        - Endpoint: !Ref PhoneNumber
+          Protocol: sms
+          
+Outputs:
+  SARCheckerFunction:
+    Description: "SARChecker Function Arn"
+    Value: !GetAtt SARChecker.Arn
