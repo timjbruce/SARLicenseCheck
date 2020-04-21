@@ -7,7 +7,7 @@ sar = boto3.client('serverlessrepo')
 sns = boto3.client('sns')
 
 messagetype = os.getenv('messagetype','')
-topicarn = os.getenv('sns_topic','')
+topicarn = os.getenv('topicarn','')
 phone = os.getenv('phonenumber','')
 
 def check_policy(appid):
@@ -16,19 +16,18 @@ def check_policy(appid):
     if(not len(policy['Statements'])==0):
         for pol in policy['Statements']:
             if 'Deploy' in pol['Actions']:
-                if pol.get('Principals','') == '*' and pol.get('PrincipalOrgIDs','') == '':
+                if '*' in pol.get('Principals','') and len(pol.get('PrincipalOrgIDs','')) == 0:
                     #shared with any account
                     policyrule = f'App {appid} shared with any account'
                     return False, policyrule
     license = sar.get_application(ApplicationId=appid)
-    if (not license.get('SpdxId','') == '')  or (not license.get('LicenseUrl','') == ''):
+    if (not license.get('SpdxLicenseId','') == '')  or (not license.get('LicenseUrl','') == ''):
         #has a license of some sort
         policyrule = f'App {appid} has a license of some sort'
         return False, policyrule
     return True, policyrule
 
 def send_messages(outofpolicy):
-    print(outofpolicy)
     for app in outofpolicy:
         message = f'Application {app["appid"]} is out of compliance.  Reason {app["policy"]}'
         subject = 'SAR App out of compliance'
